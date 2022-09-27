@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DATA 410 Final Project</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="a-foul-fowl-image-classification-project">A <s>Foul</s> Fowl Image Classification Project</h1>
+<p><img src="https://icons.iconarchive.com/icons/sykonist/looney-tunes/256/Daffy-Duck-Angry-icon.png" alt="enter image description here"><img src="https://static.pokemonpets.com/images/monsters-images-300-300/16-Pidgey.webp" alt="enter image description here"></p>
+<h2 id="introduction-why-care-about-birds">Introduction: Why Care about Birds?</h2>
+<p>Birds are an essential part of the ecosystem, particularly as pollinators and facilitators of plant seed dispersal. Birds also keep in check the populations of a variety of insects, rodents, and other small animals, ensuring a proper balance in their ecosystem.</p>
+<p>There are around 10000 bird species around the globe and many of these wild bird species, some mentioned in this project, are endangered and at risk of extinction.</p>
+<p><em>Test data images of some Endangered Bird Species: “California Condor”, “Kakapo”, “Philipine Eagle”</em><br>
+<img src="https://i.ibb.co/FKNprgG/condor.jpg" alt="enter image description here"><img src="https://i.ibb.co/SxTYjtF/kakapo.jpg" alt="enter image description here"><img src="https://i.ibb.co/DYTLGm9/eagle.jpg" alt="enter image description here"></p>
+<p>In addition to simply being interesting, there are also practical applications to being able to identify a bird species with just an image of it. For instance, there are some dangerous birds in the dataset that would be helpful to identify by image because they are extremely dangerous when provoked, such as various owl species, the harpy eagle, the ostrich, and the cassowary: named the world’s most dangerous bird.</p>
+<p><em>Harpy Eagle (left),  Cassowary (right)</em><br>
+<img src="https://i.ibb.co/ZVMhDRy/harpy-eagle.jpg" alt="enter image description here"><img src="https://i.ibb.co/kDRDkNK/cassowary.jpg" alt="enter image description here"></p>
+<h1 id="description-of-data">Description of Data</h1>
+<p>Dataset with images of 400 different bird species. There are 58388 training images, all of which are 224 x 224 x 3 in JPG format, with the x3 referring to RGB color channels. Each species has at least 120 training image files, but the training set is not balanced, with many species having a varying number of files greater than 120.</p>
+<p>The ratio of male to female birds in the training data is about 17:3, which may pose a problem because male birds are generally more colorful than female birds, such as the splendid wren example, making the female birds harder to train on and classify.</p>
+<p><em>Male Splendid Wren vs Female Splendid Wren</em><br>
+<img src="https://i.ibb.co/SPVcgjS/male-splendid-wren.jpg" alt="enter image description here"><img src="https://i.ibb.co/T8y6k3d/female-splendid-wren.jpg" alt="enter image description here"></p>
+<h3 id="test-image-examples">Test Image Examples</h3>
+<p>Most test images are of adult or juvenile male birds, but some contain the female species as well. With some birds it is easy to identify and distinguish the male and female species, but with others it is much more difficult.</p>
+<p><em>5 test images of Caspian Tern</em><br>
+<img src="https://i.ibb.co/b70ZxXt/tern1.jpg" alt="enter image description here"><img src="https://i.ibb.co/2FTwdtj/tern2.jpg" alt="enter image description here"><img src="https://i.ibb.co/whDzxMh/tern3.jpg" alt="enter image description here"><img src="https://i.ibb.co/Jqd3j2M/tern4.jpg" alt="enter image description here"><img src="https://i.ibb.co/TMqtrX8/tern5.jpg" alt="enter image description here"></p>
+<p>All the train and test images have distinguishable features such as the color and unique pattern of the feathers, but the bird images have different lighting, backgrounds, and anatomical positions.</p>
+<h2 id="loading-kaggle-data-into-google-colab-pro">Loading Kaggle Data into Google Colab (Pro+)</h2>
+<p>First I had to upgrade Google Colab to Pro+ which comes with a larger GPU and background execution. To load the Kaggle image data, instead of downloading large datasets in your local folder, there is a way to directly transfer the Kaggle dataset into google colab by creating an API token, which allows you to download a file called: ‘kaggle.json’.<br>
+<img src="https://miro.medium.com/max/875/1*wkb_CqGjxOlvr7rxzAFbgQ.png" alt="enter image description here"><br>
+After uploading the file to Google Drive in a Kaggle folder, running the following code will allow you to load any Kaggle dataset onto Google Colab, and unzip any .zip files.<br>
+<img src="https://miro.medium.com/max/875/1*Pl5hKmhkr1Urux07vBXPxQ.png" alt="enter image description here"></p>
+<pre><code>!pip install kaggle
+</code></pre>
+<pre><code>! mkdir ~/.kaggle
+</code></pre>
+<pre><code>!cp '/content/drive/MyDrive/kaggle.json'  '/content'
+</code></pre>
+<pre><code>import zipfile
+import os
+os.environ['KAGGLE_CONFIG_DIR'] = "/content"
+</code></pre>
+<pre><code># download and unzip the birds dataset
+! kaggle datasets download -d gpiosenka/100-bird-species
+</code></pre>
+<pre><code>zip_ref = zipfile.ZipFile('100-bird-species.zip', 'r') #Opens the zip file in read mode
+zip_ref.extractall('/content') #Extracts the files into the /content folder
+zip_ref.close()  
+</code></pre>
+<p><img src="https://i.ibb.co/jZGC5Qk/zipped-files.png" alt="enter image description here"></p>
+<h1 id="description-of-methods-applied">Description of Methods Applied</h1>
+<h2 id="convolutional-neural-networks-cnn">Convolutional Neural Networks (CNN)</h2>
+<p>To train on the bird images, we will use and compare CNN models from various Python libraries. A CNN is an artificial neural network that is most commonly used with image analysis by detecting patterns in these images. CNN’s contain convolutional layers that distinguish them from other deep learning methods.</p>
+<p><img src="https://miro.medium.com/max/1400/1*uAeANQIOQPqWZnnuH-VEyw.jpeg" alt=""></p>
+<p>These convolutional layers contain a specified number of image filters that are able to detect “patterns” such as geometric shapes, edges, corners, and even specific objects.</p>
+<p>An <strong>image filter</strong> is a matrix with predetermined columns and rows that is defined as a function mapping an input set of pixel information into a precisely defined output, which is each block of pixels in the image with the same dimension as the filter.<br>
+<img src="https://anhreynolds.com/img/cnn.png" alt="Anh H. Reynolds"></p>
+<p>The first few convolutional layers are generally designated for detecting simpler patterns <em>like types of edges</em>, but the deeper the layer, the more sophisticated the detections would be such as detecting animal faces and body parts. Applying these filters to the input layer generates a <strong>feature map</strong>.</p>
+<p>A pooling layer is added after a nonlinearity activation function, such as ReLU, has been applied to the output via a convolutional layer in order to reduce the dimensions of the feature maps. This dimension reduction makes computations faster. Max pooling is one common pooling function that calculates the max value, and it has been shown to provide better performance compared to min or average pooling.<br>
+<img src="https://miro.medium.com/max/1400/1*GPBRUVqDhQxDuW8r6X5n7g.png" alt="enter image description here"><br>
+<em>Image source: <a href="https://towardsdatascience.com/convolutional-neural-network-feature-map-and-filter-visualization-f75012a5a49c">https://towardsdatascience.com/convolutional-neural-network-feature-map-and-filter-visualization-f75012a5a49c</a></em></p>
+<p>Finally, we must flatten the pooled feature map into a 1-dimensional column vector, which will later be passed through the fully connected layer to be used for image classification.<br>
+<img src="https://sds-platform-private.s3-us-east-2.amazonaws.com/uploads/73_blog_image_1.png" alt="enter image description here"><br>
+<em>Image Credit: <a href="https://www.superdatascience.com/blogs/convolutional-neural-networks-cnn-step-3-flattening">https://www.superdatascience.com/blogs/convolutional-neural-networks-cnn-step-3-flattening</a></em></p>
+<p>If during the training, the input of a neuron is weighted disproportionately in favor of some neurons from the preceding layer, then we can apply <strong>dropout</strong> which removes some random connections in the whole layer in order to rebalance the remaining weights. This regularization procedure would help prevent overfitting of the CNN model.</p>
+<h2 id="keras-inception-model-v3">Keras Inception Model v3</h2>
+<p>The first CNN model we will use to classify the test images is the Inception model from the Keras library. Inceptionv3 is a CNN model composed of convolutions, pooling, concatenations, dropouts, and fully connected layers.</p>
+<p><img src="https://cloud.google.com/tpu/docs/images/inceptionv3onc--oview.png" alt="enter image description here"><br>
+<em>Image credit: <a href="https://cloud.google.com/tpu/docs/images/inceptionv3onc--oview.png">https://cloud.google.com/tpu/docs/images/inceptionv3onc--oview.png</a></em></p>
+<p>Before the model can be used to recognize images, it must be trained using a large set of labeled images, such as our birds training set.</p>
+<p>In this model, images are retrieved from the file system, decoded, and then preprocessed. Different types of preprocessing stages are available, ranging from moderate to complex. One can attain relatively high accuracies using a moderately complex preprocessing stage.</p>
+<h1 id="image-preprocessing">Image Preprocessing</h1>
+<p>The first step of image classification tends to be image preprocessing which aims to remove image distortions and enhance certain features in an image. Some common image preprocessing techniques are image filtering, resizing, and augmentation.</p>
+<h2 id="resizing-images">Resizing Images</h2>
+<p>The input to a machine learning model is a one-dimensional feature vector. However, in convolutional neural networks, multi-dimensional feature tensors can also be inputted to the model, and during training, the model must project each feature tensor close to its target.</p>
+<p>Hence, there is a requirement that feature tensors must be of the same size, so a fixed size must be selected for input images. All images must be resized to that shape, such that the same number of features must be present for each sample. There is often a barrier in processing images, since they usually come in different sizes.</p>
+<p>Luckily all the images in the Kaggle data have the standard deep learning input size: 224 x 224 x 3, so there is no need to resize the images except when viewing the output.</p>
+<h2 id="image-augmentation">Image Augmentation</h2>
+<p>The process of Data Augmentation is a preprocessing technique used to reduce overfitting when training a machine learning model by increasing the amount of available data by adding slightly modified copies of already existing data or newly created synthetic data from existing data.</p>
+<p>Augmentation most commonly involved resizing and cropping of input images, as well as modification of images such as zooms, flips, and color changes.</p>
+<p>With image augmentation there are many libraries that can accomplish this, but we will primarily use the albumtation library and the keras library’s image data generator.</p>
+<h3 id="albumtation">Albumtation</h3>
+<p>Albumentation is a fast image augmentation library and easy to use with other libraries as a wrapper. What makes this library different from the Keras ImageDataGenerator is the number of data augmentation techniques that are available. While most of the augmentation libraries include techniques like cropping, flipping, rotating and scaling, albumentation provides a range of very extensive image augmentation techniques like contrast, blur and channel shuffle as seen in the example below.</p>
+<p><em>Examples of Augmentations using Albumtations</em><br>
+<img src="https://camo.githubusercontent.com/3bb6e4bb500d96ad7bb4e4047af22a63ddf3242a894adf55ebffd3e184e4d113/68747470733a2f2f686162726173746f726167652e6f72672f776562742f62642f6e652f72762f62646e6572763563746b75646d73617a6e687734637273646669772e6a706567" alt="enter image description here"></p>
+<h2 id="images-created-using-albumtation">Images Created Using Albumtation</h2>
+<p>Here are some of the augmented training images that were created using the Albumtation library.<br>
+<img src="https://i.ibb.co/nfqJGts/Augmented-Images.png" alt="images created using data augmentation"></p>
+<h2 id="augmentation-approach-with-keras-imagedatagenerator">Augmentation approach with Keras ImageDataGenerator</h2>
+<p>The Image Data Generator function from the Keras library also performs image augmentation, and we will apply it to the train, validation, and test data.</p>
+<p>The batch size parameter refers to the number of training images utilized in one iteration or epoch. Generally a batch size of 64, 128, or 256 is used, so we will arbitrarily select 128 as our batch size.</p>
+<pre><code>train_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+train_generator = train_data.flow_from_directory('/content/train', batch_size=128, target_size=(224,224), class_mode='categorical')
+
+valid_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+valid_generator = valid_data.flow_from_directory('/content/valid', batch_size=128, target_size=(224,224), class_mode='categorical')
+
+test_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+test_generator = test_data.flow_from_directory('/content/test', batch_size=128, target_size=(224,224), class_mode='categorical')
+</code></pre>
+<h1 id="comparison-of-various-cnn-models">Comparison of Various CNN Models</h1>
+<h2 id="fitting-the-model-with-inceptionv3">Fitting the model with InceptionV3</h2>
+<p>After we apply an image preprocessing method, we are ready to fit the inception model to the training images.</p>
+<h3 id="choosing-an-optimizer">Choosing an Optimizer</h3>
+<p>A CNN optimizer is an algorithm used to change the attributes of your neural network such as weights and learning rate in order to reduce the losses. Common ones include stochastic gradient descent and the Adaptive Moment Estimation (Adam) optimizer. We will primarily use Adam because it converges quickly and is efficient compared to other optimizers at the cost of being computationally expensive.</p>
+<pre><code>from tensorflow.keras.applications.inception_v3 import InceptionV3, preprocess_input
+
+base_model = InceptionV3(
+    input_shape=IMAGE_SIZE + [3],
+    weights="imagenet",
+    include_top=False)
+</code></pre>
+<pre><code>base_model.trainable = False
+inception_model = models.Sequential()
+inception_model.add(base_model)
+inception_model.add(layers.Conv2D(1024 , (3,3) , padding = 'same', activation = 'relu'))
+inception_model.add(BatchNormalization())
+inception_model.add(layers.Dropout(0.5))
+inception_model.add(layers.Flatten())
+inception_model.add(layers.Dense(512 , activation = 'relu'))
+inception_model.add(layers.Dropout(0.5))
+inception_model.add(layers.Dense(num_classes, activation = 'softmax'))
+</code></pre>
+<pre><code># compile the model
+inception_model.compile(loss='categorical_crossentropy',
+optimizer=Adam(learning_rate=0.01), 
+metrics=['accuracy', 'top_k_categorical_accuracy'])
+
+history = inception_model.fit(
+  train_generator,
+  validation_data=valid_generator,
+  epochs=10)
+</code></pre>
+<p><img src="https://i.ibb.co/pfXn9gg/inc-model.png" alt="enter image description here"><br>
+By the end of the 10th epoch we had a training loss of 0.9535 and a validation loss of 52.4851. The training loss indicates how well the model is fitting the training data, while the validation loss indicates how well the model fits new data.</p>
+<p>Notice that we have a significantly higher validation loss compared to the training loss, meaning our model is likely overfit, despite using using data augmentation.</p>
+<p><em>Plot of training vs validation loss for 10 epochs</em><br>
+<img src="https://i.ibb.co/6sr0rTC/inceptionmodelloss.png" alt="enter image description here"></p>
+<p><em>Plot of training vs validation accuracy for 10 epochs</em><br>
+<img src="https://i.ibb.co/7KK4xbF/inceptionmodelacc.png" alt="enter image description here"></p>
+<h2 id="using-the-model-for-prediction">Using the model for prediction</h2>
+<p>To use the InceptionV3 model for predictions, first we will save the model as a .h5 file, which is an open-source file which is helpful for storing large amounts of data within a single file.</p>
+<pre><code>inception_model.save('mlca.h5')
+model1 = load_model('./mlca.h5',compile=False)
+</code></pre>
+<p>Here we define two functions to help get the prediction accuracy</p>
+<pre><code># function for predicting images
+def prediction(file_loc, model):
+    img=load_img(file_loc,target_size=(224,224,3))
+    img=img_to_array(img)
+    img=np.expand_dims(img,[0])
+    answer=model.predict(img)
+    y_class = answer.argmax(axis=-1)
+    y = " ".join(str(x) for x in y_class)
+    y = int(y)
+    classification = lab[y]
+    return classification
+</code></pre>
+<pre><code>def bird_classification(num_trials):
+  num_correct = 0
+  for _ in range(num_trials): 
+    folder = random.choice(os.listdir("/content/test"))
+    bird = random.choice(os.listdir("/content/test/" + folder))
+    pic= load_img("/content/test/" + folder + "/" + bird, target_size=(224,224,3))
+    file_name = "/content/test/" + folder + "/" + bird
+    print('The correct answer is: ' + folder)
+    print("The model predicted: " + prediction(file_name))
+
+    if (folder == output(file_name,model1)):
+      num_correct+=1
+  print("percent correct is: " + str(1.0*num_correct/num_trials))
+  return
+
+</code></pre>
+<p><img src="https://i.ibb.co/6WHZrbW/inception-classification.png" alt="enter image description here"><br>
+For 20 test images, we got an accuracy of 95%. For the first test the model misclassified a splendid wren for an azure jay.</p>
+<p><em>Male Splendid Fairywren (left) vs Azure Jay (right)</em><br>
+<img src="https://i.ibb.co/MGMqhTZ/splendid-wren.jpg" alt="enter image description here"><img src="https://i.ibb.co/5xgvGK3/azure-jay.jpg" alt="enter image description here"></p>
+<p>Repeating this 9 times we got an average accuracy of 82.78% for 180 bird images. Now we will attempt to increase this accuracy with some different CNN methods.</p>
+<h1 id="approach-using-the-xception-model">Approach using the Xception model</h1>
+<p>Now we will create a Neural Network model using the Extreme inception (Xception) model from the keras library. Proposed by the creator of Keras, this is an extension of the Inception model where Inception modules have been replaced with depthwise separable convolutions. It is one of the smallest weighted models in the list, and in the paper: <em>Xception: Deep Learning with Depthwise Separable Convolutions</em>, it was shown that Xception generally achieved much better results on various datasets when compared to InceptionV3 (Chollet).</p>
+<h3 id="data-augmentation">Data Augmentation</h3>
+<p>For the image augmentation, we used the same ImageDataGenerator code as with the Inceptionv3 model, and we also added the same layers to do a proper comparison.</p>
+<pre><code>base_model = Xception(weights = 'imagenet', include_top = False, input_shape = IMAGE_SHAPE)
+xception_model.trainable = False # Freeze the Xception weights.
+
+xception_model = models.Sequential()
+xception_model.add(base_model)
+xception_model.add(layers.Conv2D(1024 , (3,3) , padding = 'same', activation = 'relu'))
+xception_model.add(BatchNormalization())
+xception_model.add(layers.Dropout(0.5))
+xception_model.add(layers.Flatten())
+xception_model.add(layers.Dense(512 , activation = 'relu'))
+xception_model.add(layers.Dropout(0.5))
+xception_model.add(layers.Dense(num_classes, activation = 'softmax'))
+</code></pre>
+<pre><code># Compile the model
+xception_model.compile(optimizer = 'adam',
+               loss = 'categorical_crossentropy',
+               metrics = ['accuracy', 'top_k_categorical_accuracy'])
+               
+history = xception_model.fit( 
+    train_generator,
+    epochs = 10,
+    validation_data = valid_generator,
+    verbose = 1,
+    callbacks=[EarlyStopping(monitor='val_accuracy', patience = 5, restore_best_weights = True),ReduceLROnPlateau(monitor = 'val_loss', factor = 0.7, patience = 2, verbose = 1)])
+</code></pre>
+<p><img src="https://i.ibb.co/2ndjMZc/xception-fit.png" alt="enter image description here"><br>
+We see that we get a final training loss of: 1.7294 and a training accuracy of: 0.9337, with a validation loss of: 2.9073 and a validation accuracy of: 0.9080.</p>
+<p>Even though our accuracy was slightly worse than that of the fitted Inception model, we get a significantly lower validation loss, indicating that the Xception model is much less overfit.</p>
+<p><em>Plot of training vs validation loss for 10 epochs</em><br>
+<img src="https://i.ibb.co/MMGHRb1/xception-loss.png" alt="enter image description here"></p>
+<p><em>Plot of training vs validation accuracy for 10 epochs</em><img src="https://i.ibb.co/d6fwC2J/xception-accuracy.png" alt="enter image description here"></p>
+<h2 id="using-the-xception-model-for-prediction">Using the Xception model for prediction</h2>
+<p>Using the same output and classification functions as before with Inception, we will use our fitted Xception model to classify birds in the test data.</p>
+<p><img src="https://i.ibb.co/b6bszy8/classification.png" alt="enter image description here"><br>
+Repeating this 9 times, we get an average accuracy of 0.916666 or 91.67% for 180 test images. Notice that this is significantly better than the 82.78% obtained from using Inception, which was expected given the claims that Xception is supposed to be a complete upgrade.</p>
+<p>Now we will see if a different CNN approach can surpass the Xception model.</p>
+<h1 id="approach-using-the-visual-geometry-group-vgg-model">Approach using the Visual Geometry Group (VGG) model</h1>
+<p>The VGG Neural Network is a convolutional neural network model proposed by K. Simonyan and A. Zisserman in the paper “Very Deep Convolutional Networks for Large-Scale Image Recognition”. All the CNN layers were using 3 by 3 filters with <strong>stride</strong> fixed to one pixel, and a <strong>padding</strong> of 1 pixel for 3 × 3 convolutional layers and a max pooling size of 2 pixels with stride of 2 as well. This means that the pooling layer will always half the dimensions of each feature map, such that the number of pixels in each feature map is reduced by one quarter.</p>
+<p>Stride is a parameter that modifies the amount of movement over an image, while padding is the amount of pixels with value zero added to an image when it is being processed by the kernel of a CNN.</p>
+<p>Padding is important because for an <strong>(n x n)</strong> image and <strong>(m x m)</strong> filter/kernel, the dimensions of the image resulting from a convolution operation is:  <strong>(n – m + 1) x (n – m + 1)</strong>.  For instance, for a size (224 x 224) image and a (3 x 3) filter, the output resulting after convolution operation would be of size (220 x 220).</p>
+<p>Thus, the image shrinks every time a convolution operation is performed, which limits the number of times such convolutions can be performed if the filter size is different from the image size. Hence, padding maintains the dimension of images resulting from convolutions,  while maintaining most of the original information, since the pixels on the corners of an image tend to be significantly less important and less used than the pixels near the center of an image.</p>
+<p><em>Example of padding</em><br>
+<img src="https://miro.medium.com/max/325/1*b77nZmPH15dE8g49BLW20A.png" alt="enter image description here"><br>
+<em>Image source: <a href="https://medium.com/machine-learning-algorithms/what-is-padding-in-convolutional-neural-network-c120077469cc">https://medium.com/machine-learning-algorithms/what-is-padding-in-convolutional-neural-network-c120077469cc</a></em></p>
+<p>We can implement the VGG network model using the VGG16 library from tensorflow, with the 16 representing a depth of 16 layers. It is important to note that only Convolution and pooling layers are used.</p>
+<h3 id="data-augmentation-and-fitting-the-model">Data Augmentation and Fitting the model</h3>
+<p>We will use the ImageDataGenerator library to perform augmentation, and the train data will be given a larger batch size because there are much more training images than test and validation images.</p>
+<pre><code>train_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+train_generator = train_data.flow_from_directory('/content/train', batch_size=64, target_size=(224,224), class_mode='categorical')
+
+valid_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+validation_generator = valid_data.flow_from_directory('/content/valid',batch_size=64,target_size=(224,224),class_mode='categorical')
+   
+test_data = ImageDataGenerator(preprocessing_function = preprocess_input, rotation_range=20, horizontal_flip=True)
+test_generator = valid_data.flow_from_directory('/content/test',batch_size=64,target_size=(224,224),class_mode='categorical')                                             
+</code></pre>
+<pre><code>vgg_model = VGG16(weights='imagenet', include_top=False, input_shape=(224,224,3))
+#eff_model.summary()
+vgg_model.trainable = False
+
+flatten_layer = tf.keras.layers.Flatten(name='flatten')(vgg_model.output)
+dense_layer1 = tf.keras.layers.Dense(4096, activation='relu',name='fc1')(layer0)
+dense_layer2 = tf.keras.layers.Dense(4096, activation='relu',name='fc2')(layer1)
+prediction_layer = tf.keras.layers.Dense(400, activation='softmax')(layer2)
+vgg_model = tf.keras.Model(vgg_model.input, out_layer)
+#vgg_model.summary()
+</code></pre>
+<pre><code>opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+vgg_model.compile(optimizer=opt, loss="categorical_crossentropy", metrics=['accuracy'])
+callbacks = [EarlyStopping(monitor='val_accuracy', patience=3, restore_best_weights=True)]
+
+history = vgg_model.fit(
+      train_generator, 
+      epochs=10,
+      verbose=1,
+      validation_data = validation_generator,
+      callbacks=callbacks)
+</code></pre>
+<p><img src="https://i.ibb.co/vc5hDMp/vgg-training.png" alt="enter image description here"><br>
+We obtained a train accuracy of: 94.99 after the 10th epoch</p>
+<p><em>Plot of the train vs validation loss</em><br>
+<img src="https://i.ibb.co/ct0jXBW/vgg-modelloss.png" alt="enter image description here"></p>
+<p><em>Plot of the train vs validation accuracy</em><br>
+<img src="https://i.ibb.co/JqxH9MJ/vgg-modelacc.png" alt="enter image description here"></p>
+<p>Finally, we can check the accuracy when applied to the test generator.</p>
+<pre><code>vgg_model.evaluate(test_generator,use_multiprocessing=True,workers=10)
+</code></pre>
+<p>loss: 0.3440 - accuracy: 0.9415</p>
+<p>After fitting the model to the training images, we obtained a relatively good training accuracy, and it seems to also perform well in classifying the test images.</p>
+<h3 id="using-model-for-prediction">Using model for prediction</h3>
+<p>Similar to before, we define a single function to make predictions</p>
+<pre><code>def vgg_bird_classification(num_trials):
+  num_correct = 0
+  for _ in range(num_trials):
+    folder = random.choice(os.listdir("/content/test"))
+    bird = random.choice(os.listdir("/content/test/" + folder))
+    img= load_img("/content/test/" + folder + "/" + bird, target_size=(224,224,3))
+    file_name = "/content/test/" + folder + "/" + bird
+
+    img=img_to_array(img)
+    img=np.expand_dims(img,[0])
+    answer=vgg_model.predict(img)
+    y_class = answer.argmax(axis=-1)
+    y = " ".join(str(x) for x in y_class)
+    y = int(y)
+    classification = lab[y]
+
+
+    print('The correct answer is: ' + folder)
+    print("The model predicted: " + classification)
+
+    if (folder == classification):
+      num_correct+=1
+  print("percent correct is: " + str(1.0*num_correct/num_trials))
+  return
+
+</code></pre>
+<pre><code>vgg_bird_classification(20)
+</code></pre>
+<p><img src="https://i.ibb.co/7Qq13sm/vgg-predictions.png" alt="enter image description here"><br>
+For the first trial, we get a classification accuracy of 55%, which is significantly worse than the inception model. Repeating this 9 times we get a slight decline in performance for an average accuracy of .4777 or about 47.78%.</p>
+<p>Thus, from our average predictions, we see that the VGG16 model performed very poorly in correctly identifying the bird images, meaning our model is very overfit, which is somewhat surprising given that the train &amp; validation loss and accuracy plots seemed to indicate a relatively good model.</p>
+<p>There are many ways to improve this model such as perhaps including KFold cross-validation to reduce overfitting, more epochs during training or tuning the learning rate instead of guessing, but since these models take hours to train, we will instead see if the next approach will improve the results.</p>
+<h1 id="approach-using-fastai-library-and--superconvergence">Approach using fastai library and  Superconvergence</h1>
+<h2 id="super-convergence-with-the-1cycle-policy">Super-Convergence with the 1cycle policy</h2>
+<p>Proposed by by Leslie N. Smith et al., through a phenomenom called “Super-convergence”, neural networks can be trained an order of magnitude faster than with standard training methods. The paper showed that super-convergence provides a greater boost in performance relative to standard training when the amount of labeled training data is limited, which is the case for many of the bird species in the dataset.</p>
+<p>One of the key elements of super-convergence is training with one learning rate cycle and a large maximum learning rate, known as the 1cycle policy, which can implemented through the fastai library in python.</p>
+<p>The 1cycle policy always uses one learning rate cycle that is smaller than the total number of epochs and allow the learning rate to decrease several orders of magnitude less than the initial learning rate for the remaining iterations. The researchers concluded that the policy allows for an improvement in the classification accuracy compared to other CNN models.</p>
+<h2 id="creating-the-1cycle-learner-model">Creating the 1cycle learner model</h2>
+<h3 id="build-a-datablock">Build a DataBlock</h3>
+<p>To build a DataBlock, a generic container to quickly build datasets, you need to give the library four things: the types of your input/labels, and at least two functions: <code>get_items</code> and <code>splitter</code>, and we also included the optional <code>get_y</code> function.   We used the default hyperparameters provided in the documentation.</p>
+<pre><code>dls = DataBlock(blocks = (ImageBlock, CategoryBlock),
+get_items = get_image_files,
+
+get_y = parent_label,
+
+splitter = RandomSplitter(valid_pct=0.2),
+
+item_tfms=item_tfms).dataloaders(path,bs=16)
+</code></pre>
+<h3 id="initialize-the-learner">Initialize the learner</h3>
+<p>vision_learner is the module that defines the CNN learner. We used the default hyperparameters, while also including a callback for early stopping to prevent overfitting during the training process.</p>
+<pre><code>learn = vision_learner(mnist, resnet18,metrics=[accuracy, top_k_accuracy],
+opt_func=Adam, cbs = [EarlyStoppingCallback(monitor='accuracy', 
+min_delta=0.1, patience=5), ActivationStats(with_hist=True)])
+</code></pre>
+<h2 id="finding-the-optimal-learning-rate">Finding the optimal learning rate</h2>
+<p>As stated before, deep learning models are generally trained using a form of gradient descent, such as Adam. All of them let you set the learning rate, which tells the optimizer how far to move the weights in the direction opposite of the gradient for a mini-batch.</p>
+<p>Learning rate is one of the important hyperparameters used in deep learning and has a great influence on performance. In general, there is a tendency to determine the learning rate through various experiments, and keras does not have an easy function to tune the learning rate parameter. However, the fastai libary provides an easy method to find the optimal learning rate, which we will use.</p>
+<h3 id="getting-learning-rate-with-the-valley-function">Getting Learning Rate with the Valley function</h3>
+<p>We can use the valley function in the fastai library which suggests a learning rate from the longest valley and returns its index. Before the seminal one-cycle paper, a global min (<code>minimum</code>) and an estimated steepest slope (<code>steep</code>) were the metrics for finding an optima learning rate.</p>
+<p>However the paper found that these tend to not give the best estimations for a good learning rate, and two other methods were created: the <code>valley</code> and the <code>slide</code> algorithms that are significantly better at obtaining suggested learning rates. <code>valley</code> is the default over <code>slide</code> for our learner library, so we use it to obtain the optimal learning rate.</p>
+<pre><code>plt.rcParams["figure.figsize"] = (8,6)
+
+sr = learn.lr_find()
+
+sr.valley # Suggests a learning rate from the longest valley and returns its index
+</code></pre>
+<p><img src="https://i.ibb.co/KxfJfPD/Valley.png" alt="enter image description here"><br>
+<em>This is the learning rate that we will use to train on the images</em></p>
+<h2 id="training">Training</h2>
+<p>Now we will fit a superconvergence model using the 1cycle learning rate with 10 epochs. The total run time for the training was: 17 hours, 6 minutes,  and 15 seconds. This fitting took exceptionally longer than the other methods, so we hope that this model will perform significantly better at classification than the previous ones.</p>
+<p><em>The early stopping callback displays the best model, which was the 9th epoch</em><br>
+<img src="https://i.ibb.co/GkzMy1m/fit-one-cycle.png" alt="enter image description here"></p>
+<p>At the end of the 10th epoch for the training, we got a training accuracy of 78% and a top k accuracy of almost 93%, which is unfortunately worse than the keras Inception and Xception models, but perhaps the model performs better on new data.</p>
+<p>Fortunately, since our validation loss was lower than the train loss, we see that there was not much overfitting.</p>
+<h1 id="predicting-with-super-convergence-model">Predicting with Super-convergence model</h1>
+<p>Using the show_results() function in the fastai library, we can view the results of our CNN model, with a default of 9 samples.</p>
+<p>Test 1 got 7/9 correct, mistaking a whimbrel for a bar-tailed godwit and a little auk for a baikal teal:<br>
+<img src="https://i.ibb.co/8X0JVDh/test1.png" alt="enter image description here"></p>
+<h3 id="female-bar-tailed-godwit-vs-whimbrel">Female Bar-Tailed Godwit vs Whimbrel</h3>
+<p><img src="https://cdn.download.ams.birds.cornell.edu/api/v1/asset/46320841/1800" alt="Bar-tailed Godwit - eBird"> <em>Picture Credit: <a href="https://ebird.org/species/batgod">https://ebird.org/species/batgod</a></em><br>
+<img src="https://cdn.download.ams.birds.cornell.edu/api/v1/asset/64810261/1800" alt="Whimbrel - eBird"><br>
+<em>Picture Credit: <a href="https://ebird.org/species/whimbr">https://ebird.org/species/whimbr</a></em></p>
+<p>Notice that most of our incorrect predictions involved misclassifying the female species of the bird, as hypothesized given the imbalance of male and female data.</p>
+<h3 id="baikal-teal-vs-little-auk">Baikal Teal vs Little Auk</h3>
+<p><em>test 2 had 100% accuracy</em><br>
+<img src="https://i.ibb.co/Qj9rd65/test2.png" alt="enter image description here"><br>
+After 20 trials of 9 image classifications the model had an average accuracy of 0.92777 or about 92.78% for 180 images, which is slightly better than the Xception CNN models, and significantly better than the Inception and VGG model.</p>
+<p>Now we will move on to our final approach to see if it can outperform the super-convergence model.</p>
+<h1 id="approach-using-pytorch-resnet">Approach using Pytorch Resnet</h1>
+<p>Pytorch is another deep learning library that can help us address the class imbalance. We will be using the resnet18 image classification model, first proposed in “Deep Residual Learning for Image Recognition”. Resnet18 is composed of 18 layers.</p>
+<p>The paper presents Resnet as a residual learning framework to ease the training of networks that are substantially deeper than those used previously, including VGG. Resnet explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. This allowed for it to evaluate residual nets with a depth 8x deeper than VGG nets, while still having lower complexity (He et al.).</p>
+<p>Now using the same data loaders as before, we will implement the Pytorch approach. Pytorch has a transforms module that performs data augmentation when chained together with the Compose() function.</p>
+<pre><code>device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+torch.cuda.empty_cache()
+</code></pre>
+<pre><code># code borrowed from: https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+
+def train_model(model, criterion, optimizer, scheduler, epochs=25):
+    since = time.time()
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_acc = 0.0
+    
+    for epoch in range(epochs):
+        print("Epoch {}/{}".format(epoch, epochs-1))
+        print("-"*10)
+        
+        for phase in ["train", "valid"]:
+            if phase == "train":
+                model.train()
+            else:
+                model.eval()
+            running_loss = 0.0
+            running_corrects = 0 
+            
+            # Iterate over data
+            for inputs, labels in dataloaders[phase]:
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+                
+                # Zero the parametsrs
+                optimizer.zero_grad()
+                
+                # Forward
+                with torch.set_grad_enabled(phase == "train"):
+                    outputs = model(inputs)
+                    _, preds = torch.max(outputs, 1)
+                    loss = criterion(outputs, labels)
+                    
+                    if phase == "train":
+                        loss.backward()
+                        optimizer.step()
+                    
+                # Statistics
+                running_loss += loss.item() * inputs.size(0)
+                running_corrects += torch.sum(preds == labels.data)
+            
+            if phase == "train":
+                scheduler.step()
+            
+            epoch_loss = running_loss / datasizes[phase]
+            epoch_acc = running_corrects.double()/datasizes[phase]
+            
+            print("{} Loss: {:.4f} Acc: {:.4f}".format(phase, epoch_loss, epoch_acc))
+            if(phase == "valid" and epoch_acc &gt; best_acc):
+                best_acc = epoch_acc
+                best_model_wts = copy.deepcopy(model.state_dict())
+        print()
+    
+    time_elapsed = time.time() - since
+    print("Training complete in {:0f}m {:0f}s".format(time_elapsed//60, time_elapsed%60))
+    print("Best val Acc: {}:4f".format(best_acc))
+    
+    # load best model parameters
+    model.load_state_dict(best_model_wts)
+    return model
+</code></pre>
+<p>Similar to before, we will use a Cross entropy loss criterion and Adam over a stochastic gradient descent optimizer for training on the images.</p>
+<pre><code>model_ft = models.resnet18(pretrained=True)
+
+# turn training false for all layers, other than the fully connected layer
+for param in model_ft.parameters():
+    param.requires_grad = False
+
+
+# use default parameters
+num_ftrs = model_ft.fc.in_features
+model_ft.fc = nn.Linear(num_ftrs, len(classes))
+model_ft = model_ft.to(device)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model_ft.parameters(), lr=0.001)
+
+# Adjust the learning rate with StepLR
+exp_lr_sc = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+</code></pre>
+<pre><code>model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_sc, epochs=10)
+</code></pre>
+<h3 id="predicting-test-images-with-the-model">Predicting test images with the model</h3>
+<p>Here, we borrowed a function to help visualize the classified test images that we predict with our resnet model.</p>
+<pre><code># Code borrowed from: https://www.kaggle.com/code/voltvipin/birdclassification-using-pytorch
+
+
+def imshowaxis(ax, img, orig, pred):
+    img = img / 2 + 0.5
+    npimg = img.numpy()
+    ax.imshow(np.transpose(npimg, (1, 2, 0)))
+    if orig != pred:
+        ax.set_title(orig + "\n" + pred, color="red")
+    else:
+        ax.set_title(orig + "\n" + pred)
+    ax.axis("off")
+
+
+def vis_model(model, num_images=25):
+    was_training = model.training
+    model.eval()
+    images_so_far = 0
+    figure, ax = plt.subplots(5, 4, figsize=(20, 20))
+    
+    
+    with torch.no_grad():
+        for i , (inputs, labels) in enumerate(dataloaders["test"]):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            
+            for i in range(5):
+                for j in range(4):
+                    if images_so_far &lt; num_images:
+                        imshowaxis(ax[i][j], inputs.cpu().data[images_so_far], classes[labels[images_so_far]], classes[preds[images_so_far]])
+                    else:
+                        model.train(mode=was_training)
+                        return
+                    images_so_far += 1
+        model.train(mode=was_training)
+</code></pre>
+<p><img src="https://i.ibb.co/VQM6DCJ/resnet-class.png" alt="enter image description here"></p>
+<p>We see that the model classifies the test images pretty well, getting 22/25 correct, but it struggles to identify certain birds with different lighting. Repeating the results 6 more times for the next few bird species, the resnet18 model achieves an average classification accuracy of about 0.87428 or 87.43% on 175 test images.</p>
+<p>This is slightly worse than the results obtained from the fastai 1cycle and Xception models, but better than the inception and VGG model as expected.</p>
+<h2 id="discussion-and-inferences">Discussion and inferences</h2>
+<p>It seems that the CNN models from the keras and pytorch libraries did not perform as well as the fastai neural network model trained using super-convergence through the one-cycle method, despite have higher classification accuracies on the validation data during fitting. This is likely due to the nature of super-convergence preventing overfitting, allowing for the 1cycle model to perform better on classifying the unfitted test data.</p>
+<p>Moreover, when using data augmentation to generate new training images, we saw a significant improvement in classifying the test data, since the models became much less overfit as expected. However, while the VGG16 model trained and performed well on the validation data, it did a very significantly worse job in predicting the test images, classifying the birds incorrectly more often than not. Hence, there was significant overfitting that could not be fixed simply by image augmentation.</p>
+<p>Regarding computation times, while the 1cycle approach performed the best overall, and comes with functions to automatically detect the optimal learning rate, the training time took hours longer than the other CNN models, making it a time consuming approach with the benefit of having slightly larger accuracy on predictions involving new data.</p>
+<p>For the classified images themselves, from observation, we had very good accuracies in correctly classifying male bird species. However, we failed to classify many female birds such as the bar-tailed godwit, likely due to class imbalance of male to female birds in the training set. We could have tried stratified Kfold’s to ensure that each fold of dataset has the same proportion of observations with a given label. But this may come with the price of greater misclassifications of the male species instead, which is undesirable because there are significantly higher numbers of male birds in the test image data compared to female birds.</p>
+<p>Ultimately, since the fastai, keras, and pytorch models already have very high prediction accuracies on the test images, if we wanted to make further improvements upon our prediction accuracy, there would likely need to be more female bird images for each species in the training set. That way the remaining few percentages of female bird test images will have a higher chance of being classified correctly.</p>
+<h2 id="future-additions-to-the-project">Future Additions to the project</h2>
+<p>If we wanted to extend this bird classification project, we can apply even more CNN models and try to optimally tune each hyperparameter and also use stratified K-Fold cross-validations to avoid overfitting and improve the issues of class imbalance to see if it improves the prediction accuracies. We can also add in various bird calls to train a CNN model to predict a bird species based on its call.</p>
+<p>A similarly interesting project would be using similar methods to train on images of different animal classes or families that contain dangerous species, such as spiders, snakes, or insects. From observation, it appears that many people online cannot identify dangerous insects, such as bed bugs or ticks, and there are many forums dedicated to identifying bugs and spiders. Hence, such a project would have very practical applications if implemented correctly.</p>
+<h1 id="works-cited">Works Cited</h1>
+<p><a href="https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53">https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53</a></p>
+<p><a href="https://cloud.google.com/tpu/docs/inception-v3-advanced">https://cloud.google.com/tpu/docs/inception-v3-advanced</a></p>
+<p><a href="https://github.com/albumentations-team/albumentations">https://github.com/albumentations-team/albumentations</a></p>
+<p><a href="https://albumentations.ai/docs/examples/pytorch_classification/">https://albumentations.ai/docs/examples/pytorch_classification/</a></p>
+<p><a href="https://towardsdatascience.com/how-to-predict-an-image-with-keras-ca97d9cd4817">https://towardsdatascience.com/how-to-predict-an-image-with-keras-ca97d9cd4817</a></p>
+<p><a href="https://arxiv.org/abs/1708.07120">https://arxiv.org/abs/1708.07120</a></p>
+<p><a href="https://fastai1.fast.ai/vision.learner.html">https://fastai1.fast.ai/vision.learner.html</a></p>
+<p><a href="https://docs.fast.ai/data.block.html">https://docs.fast.ai/data.block.html</a></p>
+<p><a href="https://towardsdatascience.com/address-class-imbalance-easily-with-pytorch-e2d4fa208627">https://towardsdatascience.com/address-class-imbalance-easily-with-pytorch-e2d4fa208627</a></p>
+<p><a href="https://towardsdatascience.com/estimating-optimal-learning-rate-for-a-deep-neural-network-ce32f2556ce0">https://towardsdatascience.com/estimating-optimal-learning-rate-for-a-deep-neural-network-ce32f2556ce0</a></p>
+<p><a href="https://arxiv.org/abs/1409.1556">https://arxiv.org/abs/1409.1556</a></p>
+<p><a href="https://www.tensorflow.org/tutorials/images/data_augmentation">https://www.tensorflow.org/tutorials/images/data_augmentation</a></p>
+<p><a href="https://www.allaboutbirds.org/guide/">https://www.allaboutbirds.org/guide/</a></p>
+<p><a href="https://machinelearningmastery.com/pooling-layers-for-convolutional-neural-networks/">https://machinelearningmastery.com/pooling-layers-for-convolutional-neural-networks/</a></p>
+<p><a href="https://towardsdatascience.com/transfer-learning-with-vgg16-and-keras-50ea161580b4">https://towardsdatascience.com/transfer-learning-with-vgg16-and-keras-50ea161580b4</a></p>
+<p><a href="https://arxiv.org/abs/1512.03385">https://arxiv.org/abs/1512.03385</a></p>
+<p><a href="https://arxiv.org/abs/1610.02357">https://arxiv.org/abs/1610.02357</a></p>
+<h3 id="picture-credits">Picture Credits</h3>
+<p><a href="https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53*">https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53*</a></p>
+<p><a href="https://camo.githubusercontent.com/3bb6e4bb500d96ad7bb4e4047af22a63ddf3242a894adf55ebffd3e184e4d113/68747470733a2f2f686162726173746f726167652e6f72672f776562742f62642f6e652f72762f62646e6572763563746b75646d73617a6e687734637273646669772e6a706567">https://camo.githubusercontent.com/3bb6e4bb500d96ad7bb4e4047af22a63ddf3242a894adf55ebffd3e184e4d113/68747470733a2f2f686162726173746f726167652e6f72672f776562742f62642f6e652f72762f62646e6572763563746b75646d73617a6e687734637273646669772e6a706567</a></p>
+<p><a href="https://anhreynolds.com/img/cnn.png">https://anhreynolds.com/img/cnn.png</a></p>
+<p><a href="https://maelfabien.github.io/assets/images/inception.jpg">https://maelfabien.github.io/assets/images/inception.jpg</a></p>
+</div>
+</body>
+
+</html>
